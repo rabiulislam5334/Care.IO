@@ -1,9 +1,10 @@
 import Sidebar from "@/components/Dashboard/Sidebar";
+import ThemeToggle from "@/components/ThemeToggle"; // ১. ইমপোর্ট করুন
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Home, Moon, Sun } from "lucide-react"; // আইকনগুলো ইমপোর্ট করুন
+import { Home } from "lucide-react";
 
 export default async function DashboardLayout({ children }) {
   const session = await getServerSession(authOptions);
@@ -32,7 +33,7 @@ export default async function DashboardLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* ১. হোম বাটন (Home Page-এ ফেরার জন্য) */}
+            {/* হোম বাটন */}
             <Link
               href="/"
               className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -41,14 +42,8 @@ export default async function DashboardLayout({ children }) {
               <Home size={20} />
             </Link>
 
-            {/* ২. ডার্ক মোড বাটন (এটি আপাতত ডিজাইন হিসেবে থাকবে) */}
-            <button
-              className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm"
-              title="Toggle Theme"
-            >
-              <Sun size={20} className="dark:hidden" />
-              <Moon size={20} className="hidden dark:block" />
-            </button>
+            {/* ২. থিম টগল বাটন যোগ করা হলো */}
+            <ThemeToggle />
 
             {/* প্রোফাইল ইমেজ */}
             <img

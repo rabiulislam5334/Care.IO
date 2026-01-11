@@ -5,6 +5,7 @@ import AnimationProvider from "@/components/AnimationProvider"; // আগে ত
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,9 @@ export default function RootLayout({ children }) {
             {/* নোটিফিকেশন এর জন্য Toaster */}
             <Toaster position="top-center" reverseOrder={false} />
             <Navbar></Navbar>
-            <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">
+              <ThemeProvider>{children}</ThemeProvider>
+            </main>
             <Footer></Footer>
           </AnimationProvider>
         </AuthProvider>
