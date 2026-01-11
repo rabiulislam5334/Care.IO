@@ -1,113 +1,161 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User, LayoutDashboard, LogOut } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  LogOut,
+  LayoutDashboard,
+  Menu,
+  X,
+  Home,
+  Info,
+  PhoneCall,
+  Briefcase,
+} from "lucide-react";
 
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // (dashboard) গ্রুপে থাকা পেজগুলোতে মেইন নেভবার হাইড থাকবে
+  const dashboardPaths = ["/admin", "/user", "/caretaker"];
+  const isDashboard = dashboardPaths.some((path) => pathname.startsWith(path));
+
+  if (isDashboard) return null;
+
+  // লগইন থাকলে ইউজারের রোল অনুযায়ী ড্যাশবোর্ড লিঙ্ক
+  const dashboardLink = session?.user?.role === "admin" ? "/admin" : "/user";
+
+  const navLinks = [
+    { name: "Home", path: "/", icon: <Home size={18} /> },
+    { name: "Services", path: "/services", icon: <Briefcase size={18} /> },
+    { name: "About", path: "/about", icon: <Info size={18} /> },
+    { name: "Contact", path: "/contact", icon: <PhoneCall size={18} /> },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-      <div className="w-11/12 mx-auto h-20 flex items-center justify-between">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
+      <div className="w-11/12 mx-auto flex justify-between items-center h-20">
         {/* Logo */}
         <Link
           href="/"
-          className="text-2xl font-black text-blue-600 tracking-tighter"
+          className="text-2xl font-black text-blue-600 tracking-tighter flex items-center gap-2"
         >
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white italic shadow-lg shadow-blue-200">
+            C
+          </div>
           Care.IO
         </Link>
 
         {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-8 font-semibold text-slate-600">
-          <Link href="/" className="hover:text-blue-600 transition-all">
-            Home
-          </Link>
-          <Link href="/services" className="hover:text-blue-600 transition-all">
-            Services
-          </Link>
-          <Link href="/about" className="hover:text-blue-600 transition-all">
-            About Us
-          </Link>
-
-          {session ? (
-            <div className="flex items-center gap-4 border-l pl-8 border-slate-200">
+        <div className="hidden md:flex items-center gap-8">
+          <div className="flex items-center gap-6 border-r border-slate-100 pr-8">
+            {navLinks.map((link) => (
               <Link
-                href={`/${session.user.role}`}
-                className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full hover:bg-blue-100 transition-all"
+                key={link.path}
+                href={link.path}
+                className={`font-bold transition-all text-sm flex items-center gap-1.5 ${
+                  pathname === link.path
+                    ? "text-blue-600"
+                    : "text-slate-600 hover:text-blue-600"
+                }`}
               >
-                <LayoutDashboard size={18} />
-                <span>Dashboard</span>
+                {link.name}
               </Link>
-              <img
-                src={session.user.image}
-                className="w-10 h-10 rounded-full border-2 border-blue-600 p-0.5"
-                alt="User"
-              />
-            </div>
-          ) : (
+            ))}
+          </div>
+
+          {status === "authenticated" ? (
+            /* লগইন থাকলে */
             <div className="flex items-center gap-4">
               <Link
+                href={dashboardLink}
+                className="flex items-center gap-2 font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
+              >
+                <LayoutDashboard size={18} />
+                Dashboard
+              </Link>
+
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
+          ) : (
+            /* লগইন না থাকলে */
+            <div className="flex items-center gap-3">
+              <Link
                 href="/login"
-                className="px-6 py-2.5 rounded-full hover:bg-slate-50 transition-all"
+                className="font-bold text-slate-600 px-4 py-2 hover:text-blue-600 transition-all text-sm"
               >
                 Login
               </Link>
-              <Link
-                href="/register"
-                className="bg-blue-600 text-white px-6 py-2.5 rounded-full shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-              >
-                Join Free
+              <Link href="/register">
+                <button className="bg-blue-600 text-white px-7 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95">
+                  Get Started
+                </button>
               </Link>
             </div>
           )}
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile Menu Toggle */}
         <button
-          className="md:hidden text-slate-800"
+          className="md:hidden p-2 text-slate-600"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-20 left-0 w-full bg-white border-b border-slate-100 p-6 flex flex-col gap-4 md:hidden shadow-xl"
-          >
-            <Link href="/" onClick={() => setIsOpen(false)}>
-              Home
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="md:hidden bg-white border-b border-slate-100 p-6 space-y-4 animate-in slide-in-from-top duration-300">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              href={link.path}
+              onClick={() => setIsOpen(false)}
+              className="block font-bold text-slate-600"
+            >
+              {link.name}
             </Link>
-            <Link href="/services" onClick={() => setIsOpen(false)}>
-              Services
-            </Link>
-            <hr />
-            {session ? (
+          ))}
+          <div className="pt-4 border-t border-slate-100">
+            {status === "authenticated" ? (
               <Link
-                href={`/${session.user.role}`}
-                className="font-bold text-blue-600"
+                href={dashboardLink}
+                onClick={() => setIsOpen(false)}
+                className="block font-bold text-blue-600"
               >
                 Dashboard
               </Link>
             ) : (
-              <>
-                <Link href="/login">Login</Link>
-                <Link href="/register" className="font-bold text-blue-600">
+              <div className="space-y-4">
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block font-bold text-slate-600"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsOpen(false)}
+                  className="block font-bold text-blue-600"
+                >
                   Register
                 </Link>
-              </>
+              </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

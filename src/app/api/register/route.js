@@ -1,6 +1,7 @@
 // import clientPromise from "@/lib/mongodb";
 import clientPromise from "@/lib/mongodb";
-import bcrypt from "bcryptjs";
+// import bcrypt from "bcrypt";
+const bcrypt = require("bcryptjs");
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
