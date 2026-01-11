@@ -9,12 +9,12 @@ export default function ThemeToggle() {
 
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return null; // হাইড্রেশন এরর এড়াতে
+  if (!mounted) return <div className="p-5"></div>;
 
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+      className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:ring-2 hover:ring-blue-500 transition-all"
     >
       {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
     </button>
