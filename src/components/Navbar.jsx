@@ -19,14 +19,19 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  // (dashboard) গ্রুপে থাকা পেজগুলোতে মেইন নেভবার হাইড থাকবে
-  const dashboardPaths = ["/admin", "/user", "/caretaker"];
-  const isDashboard = dashboardPaths.some((path) => pathname.startsWith(path));
+  // যেহেতু এখন ফোল্ডারটির নাম 'dashboard', তাই চেক করার নিয়ম এটি:
+  // এটি ড্যাশবোর্ড পেজগুলোতে মেইন নেভবার হাইড রাখবে
+  const isDashboard = pathname.startsWith("/dashboard");
 
   if (isDashboard) return null;
 
-  // লগইন থাকলে ইউজারের রোল অনুযায়ী ড্যাশবোর্ড লিঙ্ক
-  const dashboardLink = session?.user?.role === "admin" ? "/admin" : "/user";
+  // লগইন থাকলে ইউজারের রোল অনুযায়ী সঠিক ড্যাশবোর্ড লিঙ্ক (সংশোধিত)
+  const dashboardLink =
+    session?.user?.role === "admin"
+      ? "/dashboard/admin"
+      : session?.user?.role === "caretaker"
+      ? "/dashboard/caretaker"
+      : "/dashboard/user";
 
   const navLinks = [
     { name: "Home", path: "/", icon: <Home size={18} /> },
@@ -68,7 +73,6 @@ export default function Navbar() {
           </div>
 
           {status === "authenticated" ? (
-            /* লগইন থাকলে */
             <div className="flex items-center gap-4">
               <Link
                 href={dashboardLink}
@@ -87,7 +91,6 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            /* লগইন না থাকলে */
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
@@ -115,7 +118,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-b border-slate-100 p-6 space-y-4 animate-in slide-in-from-top duration-300">
+        <div className="md:hidden bg-white border-b border-slate-100 p-6 space-y-4">
           {navLinks.map((link) => (
             <Link
               key={link.path}

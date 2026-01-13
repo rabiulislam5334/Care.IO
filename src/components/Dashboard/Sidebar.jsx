@@ -11,16 +11,13 @@ import {
   Users,
   CreditCard,
   Heart,
-  ChevronRight,
-  Settings,
 } from "lucide-react";
 
-// মেইন মেনু আইটেমগুলো এখানে থাকবে (রোল অনুযায়ী আলাদা)
 const menuItems = {
   user: [
     {
       name: "My Bookings",
-      path: "/dashboard/user",
+      path: "/dashboard/user", // এখন /dashboard যোগ করা বাধ্যতামূলক
       icon: <CalendarCheck size={20} />,
     },
     {
@@ -49,12 +46,12 @@ const menuItems = {
   admin: [
     {
       name: "Admin Home",
-      path: "/dashboard/admin",
+      path: "/dashboard/admin", // সঠিক পাথ
       icon: <LayoutDashboard size={20} />,
     },
     {
       name: "All Bookings",
-      path: "/dashboard/admin/bookings",
+      path: "/dashboard/admin/bookings", // সঠিক পাথ
       icon: <CalendarCheck size={20} />,
     },
     {
@@ -76,7 +73,7 @@ export default function Sidebar() {
   const role = session?.user?.role || "user";
 
   return (
-    <div className="w-64 min-h-screen bg-white border-r border-slate-100 p-6 flex flex-col shadow-sm">
+    <div className="w-64 min-h-screen bg-white dark:bg-slate-800 border-r border-slate-100 dark:border-slate-700 p-6 flex flex-col shadow-sm transition-colors duration-300">
       {/* Brand Logo */}
       <div className="mb-10 px-2">
         <Link
@@ -85,14 +82,14 @@ export default function Sidebar() {
         >
           Care.IO
         </Link>
-        <div className="mt-2 inline-block bg-blue-50 px-2 py-0.5 rounded-md">
-          <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest italic">
+        <div className="mt-2 inline-block bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest italic">
             {role} mode
           </p>
         </div>
       </div>
 
-      {/* Primary Navigation (Role Specific) */}
+      {/* Primary Navigation */}
       <nav className="flex-1 space-y-1.5">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-3 mb-2">
           Main Menu
@@ -105,8 +102,8 @@ export default function Sidebar() {
                 whileHover={{ x: 4 }}
                 className={`flex items-center justify-between p-3 rounded-xl font-bold transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-blue-600"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-blue-600"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -119,19 +116,19 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom Section (Common for all roles) */}
-      <div className="pt-6 border-t border-slate-100 space-y-1.5">
+      {/* Bottom Section */}
+      <div className="pt-6 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-3 mb-2">
           Account
         </p>
 
-        {/* Profile Link - এটি এখন সবার জন্য নিচে থাকবে */}
+        {/* প্রোফাইল লিঙ্ক ঠিক করা হয়েছে */}
         <Link href={`/dashboard/${role}/profile`}>
           <div
             className={`flex items-center gap-3 p-3 rounded-xl font-bold transition-all ${
               pathname.includes("/profile")
-                ? "bg-slate-800 text-white"
-                : "text-slate-500 hover:bg-slate-50"
+                ? "bg-slate-800 dark:bg-slate-600 text-white"
+                : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
             }`}
           >
             <User size={20} />
@@ -139,10 +136,9 @@ export default function Sidebar() {
           </div>
         </Link>
 
-        {/* Logout Button */}
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="w-full flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-all group"
+          className="w-full flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all group"
         >
           <LogOut size={20} />
           <span className="text-sm">Logout</span>
