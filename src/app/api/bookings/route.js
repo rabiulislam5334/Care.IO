@@ -1,42 +1,30 @@
 import clientPromise from "@/lib/mongodb";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // আপনার পাথ অনুযায়ী দিন
 import { NextResponse } from "next/server";
 
-// ১. বুকিং সেভ করা (POST)
-export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-  const data = await req.json();
-  const client = await clientPromise;
-  const db = client.db("CareIO");
-
-  const result = await db.collection("bookings").insertOne({
-    ...data,
-    userEmail: session.user.email, // ইউজারের ইমেইল যাতে পরে ফিল্টার করা যায়
-    status: "Pending",
-    createdAt: new Date(),
-  });
-
-  return NextResponse.json(result, { status: 201 });
-}
-
-// ২. ইউজারের সব বুকিং দেখা (GET)
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const session = await getServerSession(authOptions);
 
-  const client = await clientPromise;
-  const db = client.db("CareIO");
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-  const bookings = await db
-    .collection("bookings")
-    .find({ userEmail: session.user.email })
-    .sort({ createdAt: -1 })
-    .toArray();
+    const client = await clientPromise;
+    const db = client.db("CareIO");
 
-  return NextResponse.json(bookings);
+    // শুধুমাত্র লগইন করা ইউজারের ইমেইল অনুযায়ী বুকিং খুঁজবে
+    const bookings = await db
+      .collection("bookings")
+      .find({ email: session.user.email })
+      .toArray();
+
+    return NextResponse.json(bookings);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch bookings" },
+      { status: 500 }
+    );
+  }
 }
