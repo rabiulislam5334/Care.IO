@@ -1,20 +1,42 @@
 "use client";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Calendar, Package, Clock, Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, MapPin } from "lucide-react";
+import Swal from "sweetalert2";
 
-export default function UserDashboard() {
+export default function AllBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchBookings = async () => {
+    const res = await fetch("/api/bookings");
+    const data = await res.json();
+    setBookings(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    fetch("/api/bookings") // এটি শুধুমাত্র লগইন করা ইউজারের ডাটা আনবে
-      .then((res) => res.json())
-      .then((data) => {
-        setBookings(Array.isArray(data) ? data : []);
-        setLoading(false);
-      });
+    fetchBookings();
   }, []);
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    const res = await fetch("/api/admin/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: newStatus }),
+    });
+
+    if (res.ok) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: `Status: ${newStatus}`,
+        showConfirmButton: false,
+        timer: 1500,
+      });
+      fetchBookings();
+    }
+  };
 
   if (loading)
     return (
@@ -24,89 +46,97 @@ export default function UserDashboard() {
     );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            Welcome Back! 👋
-          </h1>
-          <p className="text-slate-500 font-medium">
-            Here is what's happening with your care requests.
-          </p>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+        <h2 className="text-2xl font-black text-slate-800">
+          Customer Bookings
+        </h2>
+        <div className="flex gap-2">
+          <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+            Pending: {bookings.filter((b) => b.status === "Pending").length}
+          </span>
+          <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+            Approved: {bookings.filter((b) => b.status === "Approved").length}
+          </span>
         </div>
       </div>
 
-      {/* User Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <UserStatCard
-          title="My Bookings"
-          value={bookings.length}
-          icon={<Package />}
-          color="text-blue-600"
-          bg="bg-blue-50"
-        />
-        <UserStatCard
-          title="Active Care"
-          value={bookings.filter((b) => b.status === "Approved").length}
-          icon={<Calendar />}
-          color="text-green-600"
-          bg="bg-green-50"
-        />
-        <UserStatCard
-          title="Pending"
-          value={bookings.filter((b) => b.status === "Pending").length}
-          icon={<Clock />}
-          color="text-orange-600"
-          bg="bg-orange-50"
-        />
-      </div>
-
-      {/* Recent Bookings List */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-800 mb-6">
-          Recent Activities
-        </h2>
-        {bookings.length === 0 ? (
-          <p className="text-slate-400 italic">No recent bookings found.</p>
-        ) : (
-          <div className="space-y-4">
-            {bookings.slice(0, 3).map((booking) => (
-              <div
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50/50">
+            <tr>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">
+                Customer & Address
+              </th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">
+                Duration & Cost
+              </th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">
+                Current Status
+              </th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {bookings.map((booking) => (
+              <tr
                 key={booking._id}
-                className="flex items-center justify-between p-4 border-b border-slate-50 last:border-0"
+                className="hover:bg-slate-50/50 transition-all"
               >
-                <div>
-                  <p className="font-bold text-slate-800">
-                    Booking for {booking.duration} Days
+                <td className="px-8 py-5">
+                  <p className="font-bold text-slate-800">{booking.userName}</p>
+                  <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                    <MapPin size={12} /> {booking.address}, {booking.district}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    {booking.date || "Recently booked"}
+                </td>
+                <td className="px-8 py-5">
+                  <p className="text-sm font-bold text-slate-700">
+                    {booking.duration} Days
                   </p>
-                </div>
-                <span className="text-sm font-black text-blue-600">
-                  {booking.totalCost} BDT
-                </span>
-              </div>
+                  <p className="text-blue-600 font-black text-sm">
+                    {booking.totalCost} BDT
+                  </p>
+                </td>
+                <td className="px-8 py-5">
+                  <span
+                    className={`flex items-center gap-1.5 w-fit px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
+                      booking.status === "Approved"
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        : booking.status === "Rejected"
+                        ? "bg-rose-50 text-rose-600 border-rose-100"
+                        : "bg-amber-50 text-amber-600 border-amber-100"
+                    }`}
+                  >
+                    {booking.status === "Approved" ? (
+                      <CheckCircle size={12} />
+                    ) : booking.status === "Rejected" ? (
+                      <XCircle size={12} />
+                    ) : (
+                      <Clock size={12} />
+                    )}
+                    {booking.status}
+                  </span>
+                </td>
+                <td className="px-8 py-5">
+                  <select
+                    value={booking.status}
+                    onChange={(e) =>
+                      handleStatusUpdate(booking._id, e.target.value)
+                    }
+                    className="bg-slate-100 text-slate-600 text-[11px] font-black py-2 px-3 rounded-xl outline-none cursor-pointer hover:bg-slate-200 transition-all"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approve</option>
+                    <option value="Rejected">Reject</option>
+                  </select>
+                </td>
+              </tr>
             ))}
-          </div>
-        )}
+          </tbody>
+        </table>
       </div>
-    </div>
-  );
-}
-
-function UserStatCard({ title, value, icon, color, bg }) {
-  return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-      <div
-        className={`w-12 h-12 ${bg} ${color} rounded-2xl flex items-center justify-center mb-4`}
-      >
-        {icon}
-      </div>
-      <p className="text-slate-500 text-xs font-black uppercase tracking-widest">
-        {title}
-      </p>
-      <h2 className="text-3xl font-black text-slate-800 mt-1">{value}</h2>
     </div>
   );
 }
