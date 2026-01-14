@@ -1,73 +1,85 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  LayoutDashboard,
   Clock,
   CheckCircle,
   Calendar,
-  User as UserIcon,
+  LayoutDashboard,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function UserDashboard() {
   const [userData, setUserData] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ইউজারের ডাটা ফেচ করা
-    fetch("/api/user/profile")
-      .then((res) => res.json())
-      .then((data) => setUserData(data));
+    const fetchData = async () => {
+      const [userRes, bookingRes] = await Promise.all([
+        fetch("/api/user/profile"),
+        fetch("/api/user/bookings"),
+      ]);
+      const userData = await userRes.json();
+      const bookingData = await bookingRes.json();
+
+      setUserData(userData);
+      setBookings(bookingData || []);
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
-  const stats = [
-    {
-      label: "Active Care",
-      value: "01",
-      icon: <Clock className="text-orange-500" />,
-      bg: "bg-orange-50",
-    },
-    {
-      label: "Completed",
-      value: "12",
-      icon: <CheckCircle className="text-emerald-500" />,
-      bg: "bg-emerald-50",
-    },
-    {
-      label: "Total Bookings",
-      value: "13",
-      icon: <Calendar className="text-blue-500" />,
-      bg: "bg-blue-50",
-    },
-  ];
+  const activeCount = bookings.filter((b) => b.status === "pending").length;
+  const completedCount = bookings.filter(
+    (b) => b.status === "completed"
+  ).length;
+
+  if (loading)
+    return (
+      <div className="h-96 flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
 
   return (
     <div className="space-y-8 p-2">
       {/* Welcome Header */}
       <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
         <div className="relative z-10">
-          <h1 className="text-3xl font-black">
-            Hello, {userData?.name || "User"}! 👋
-          </h1>
+          <h1 className="text-3xl font-black">Hello, {userData?.name}! 👋</h1>
           <p className="text-slate-400 mt-2 font-medium">
-            Welcome back to your CareIO dashboard.
+            You have {activeCount} active care requests.
           </p>
-          <Link href="/dashboard/admin/profile">
-            <button className="mt-6 px-6 py-3 bg-white text-slate-900 rounded-2xl font-black text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
-              View Profile <ArrowRight size={16} />
-            </button>
-          </Link>
         </div>
-        {/* Background Blur Decor */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] -mr-32 -mt-32"></div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Dynamic Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, index) => (
+        {[
+          {
+            label: "Active Care",
+            value: activeCount,
+            icon: <Clock className="text-orange-500" />,
+            bg: "bg-orange-50",
+          },
+          {
+            label: "Completed",
+            value: completedCount,
+            icon: <CheckCircle className="text-emerald-500" />,
+            bg: "bg-emerald-50",
+          },
+          {
+            label: "Total Bookings",
+            value: bookings.length,
+            icon: <Calendar className="text-blue-500" />,
+            bg: "bg-blue-50",
+          },
+        ].map((stat, i) => (
           <div
-            key={index}
-            className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5"
+            key={i}
+            className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-5 shadow-sm"
           >
             <div
               className={`w-14 h-14 ${stat.bg} rounded-2xl flex items-center justify-center`}
@@ -75,7 +87,7 @@ export default function UserDashboard() {
               {stat.icon}
             </div>
             <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-[10px] font-black text-slate-400 uppercase">
                 {stat.label}
               </p>
               <h2 className="text-2xl font-black text-slate-800">
@@ -86,24 +98,45 @@ export default function UserDashboard() {
         ))}
       </div>
 
-      {/* Recent Activity Section (Placeholder) */}
+      {/* Bookings Table/List */}
       <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black text-slate-800">Recent Bookings</h3>
-          <button className="text-sm font-bold text-blue-600 hover:underline">
-            View All
-          </button>
-        </div>
-
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <LayoutDashboard className="text-slate-300" size={32} />
+        <h3 className="text-xl font-black text-slate-800 mb-6">
+          Recent Bookings
+        </h3>
+        {bookings.length > 0 ? (
+          <div className="space-y-4">
+            {bookings.slice(0, 5).map((booking, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl"
+              >
+                <div>
+                  <p className="font-bold text-slate-800">
+                    {booking.serviceName || "Care Service"}
+                  </p>
+                  <p className="text-xs text-slate-400">{booking.date}</p>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                    booking.status === "completed"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : "bg-orange-100 text-orange-600"
+                  }`}
+                >
+                  {booking.status}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="text-slate-500 font-bold">No recent bookings found.</p>
-          <p className="text-slate-400 text-sm mt-1">
-            When you hire a caretaker, they will appear here.
-          </p>
-        </div>
+        ) : (
+          <div className="text-center py-10">
+            <LayoutDashboard
+              className="mx-auto text-slate-200 mb-4"
+              size={48}
+            />
+            <p className="text-slate-400 font-bold">No bookings yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );

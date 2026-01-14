@@ -21,6 +21,11 @@ const menuItems = {
       icon: <CalendarCheck size={20} />,
     },
     {
+      name: "Payments",
+      path: "/dashboard/user/payments",
+      icon: <CreditCard size={20} />, // Lucide থেকে CreditCard ইমপোর্ট করে নিন
+    },
+    {
       name: "Support",
       path: "/dashboard/user/support",
       icon: <Heart size={20} />,
