@@ -11,6 +11,7 @@ import {
   Users,
   CreditCard,
   Heart,
+  UserPlus,
 } from "lucide-react";
 
 const menuItems = {
@@ -63,6 +64,11 @@ const menuItems = {
       name: "Manage Users",
       path: "/dashboard/admin/users",
       icon: <Users size={20} />,
+    },
+    {
+      name: "Manage Request",
+      path: "/dashboard/admin/requests",
+      icon: <UserPlus size={20} />,
     },
     {
       name: "Payments",
