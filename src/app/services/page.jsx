@@ -1,94 +1,124 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { MapPin, Search, SlidersHorizontal } from "lucide-react";
+import {
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  ArrowRight,
+  Sparkles,
+  Navigation,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 
-const allServices = [
-  {
-    id: 1,
-    name: "Child Care",
-    division: "Dhaka",
-    district: "Mirpur",
-    category: "Child",
-    price: 500,
-    image: "https://images.unsplash.com/photo-1581578731522-745505146317?w=600",
-  },
-  {
-    id: 2,
-    name: "Elderly Care",
-    division: "Chittagong",
-    district: "Pahartali",
-    category: "Senior",
-    price: 700,
-    image: "https://images.unsplash.com/photo-1516703095085-356c9273646d?w=600",
-  },
-  {
-    id: 3,
-    name: "Sick Care",
-    division: "Dhaka",
-    district: "Gulshan",
-    category: "Medical",
-    price: 1000,
-    image: "https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?w=600",
-  },
-  {
-    id: 4,
-    name: "Post-Surgery Care",
-    division: "Sylhet",
-    district: "Zindabazar",
-    category: "Medical",
-    price: 1200,
-    image: "https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?w=600",
-  },
-];
-
-const divisions = [
-  "All",
-  "Dhaka",
-  "Chittagong",
-  "Sylhet",
-  "Rajshahi",
-  "Khulna",
-];
+// আপনার দেওয়া location.json ইমপোর্ট করুন
+import locationData from "../../../public/location.json";
 
 export default function AdvancedServicesPage() {
-  const [selectedDivision, setSelectedDivision] = useState("All");
-  const [searchDistrict, setSearchDistrict] = useState("");
-  const [searchName, setSearchName] = useState("");
+  // ডাটাবেস থেকে আসা সার্ভিসগুলোর জন্য স্টেট
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // মাল্টি-লেভেল ফিল্টারিং লজিক
-  const filteredServices = allServices.filter((s) => {
-    const matchDivision =
-      selectedDivision === "All" || s.division === selectedDivision;
-    const matchDistrict = s.district
-      .toLowerCase()
-      .includes(searchDistrict.toLowerCase());
-    const matchName = s.name.toLowerCase().includes(searchName.toLowerCase());
-    return matchDivision && matchDistrict && matchName;
-  });
+  // ফিল্টার এবং পেজিনেশন স্টেট
+  const [selectedDivision, setSelectedDivision] = useState("All");
+  const [selectedDistrict, setSelectedDistrict] = useState("All");
+  const [searchName, setSearchName] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // ১. ডাটাবেস থেকে সব সার্ভিস ফেচ করা (API Call)
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        // আপনার সার্ভিস লিস্ট পাওয়ার এপিআই এন্ডপয়েন্ট এখানে দিন
+        const res = await fetch("/api/caretaker/all-services");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setServices(data);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  // ২. location.json থেকে ডায়নামিক বিভাগ ও জেলা লিস্ট তৈরি
+  const divisions = useMemo(
+    () => ["All", ...new Set(locationData.map((loc) => loc.region))],
+    []
+  );
+
+  const districts = useMemo(() => {
+    if (selectedDivision === "All") return ["All"];
+    const filtered = locationData.filter(
+      (loc) => loc.region === selectedDivision
+    );
+    return ["All", ...new Set(filtered.map((loc) => loc.district))];
+  }, [selectedDivision]);
+
+  // ৩. ফিল্টারিং লজিক (ডাটাবেস থেকে আসা ডাটার ওপর)
+  const filteredServices = useMemo(() => {
+    return services.filter((s) => {
+      const matchDivision =
+        selectedDivision === "All" || s.region === selectedDivision;
+      const matchDistrict =
+        selectedDistrict === "All" || s.district === selectedDistrict;
+      const matchName =
+        s.category?.toLowerCase().includes(searchName.toLowerCase()) ||
+        s.name?.toLowerCase().includes(searchName.toLowerCase());
+      return matchDivision && matchDistrict && matchName;
+    });
+  }, [services, selectedDivision, selectedDistrict, searchName]);
+
+  // ৪. পেজিনেশন লজিক
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+  const currentItems = filteredServices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (loading)
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-16">
-      <div className="w-11/12 mx-auto">
-        {/* Advanced Filter Bar */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 mb-12 border border-slate-100">
-          <div className="flex items-center gap-3 mb-8">
-            <SlidersHorizontal className="text-blue-600" size={24} />
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              Search & Filter
-            </h2>
-          </div>
+    <div className="min-h-screen bg-[#F8FAFC] py-16">
+      <div className="w-11/12 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-black text-slate-900 uppercase italic flex items-center gap-3">
+            Service Market <Sparkles className="text-blue-600" />
+          </h1>
+          <p className="text-slate-500 font-bold mt-2 uppercase text-[10px] tracking-[0.3em]">
+            Real-time expert directory
+          </p>
+        </div>
 
+        {/* Filter Section */}
+        <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 mb-10 border border-slate-100">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Division Select */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase ml-2">
-                Division
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Navigation size={12} className="text-blue-600" /> Division
               </label>
               <select
-                onChange={(e) => setSelectedDivision(e.target.value)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 outline-none appearance-none"
+                value={selectedDivision}
+                onChange={(e) => {
+                  setSelectedDivision(e.target.value);
+                  setSelectedDistrict("All");
+                  setCurrentPage(1);
+                }}
+                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-blue-600 font-bold outline-none cursor-pointer"
               >
                 {divisions.map((d) => (
                   <option key={d} value={d}>
@@ -98,90 +128,90 @@ export default function AdvancedServicesPage() {
               </select>
             </div>
 
-            {/* District Search */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase ml-2">
-                Area / District
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <MapPin size={12} className="text-blue-600" /> District
               </label>
-              <div className="relative">
-                <MapPin
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="e.g. Mirpur or Gulshan"
-                  onChange={(e) => setSearchDistrict(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 font-bold outline-none"
-                />
-              </div>
+              <select
+                value={selectedDistrict}
+                disabled={selectedDivision === "All"}
+                onChange={(e) => {
+                  setSelectedDistrict(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-blue-600 font-bold outline-none disabled:opacity-50"
+              >
+                {districts.map((dist) => (
+                  <option key={dist} value={dist}>
+                    {dist}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Service Name Search */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase ml-2">
-                Service Name
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Search size={12} className="text-blue-600" /> Search Care
               </label>
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Search service..."
-                  onChange={(e) => setSearchName(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 font-bold outline-none"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Ex: Child Care, Nurse..."
+                onChange={(e) => {
+                  setSearchName(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-blue-600 font-bold outline-none"
+              />
             </div>
           </div>
         </div>
 
-        {/* Results Info */}
-        <p className="mb-8 font-bold text-slate-500">
-          Found <span className="text-blue-600">{filteredServices.length}</span>{" "}
-          services in your criteria
-        </p>
-
-        {/* Service Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-          <AnimatePresence>
-            {filteredServices.map((service) => (
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[400px]">
+          <AnimatePresence mode="popLayout">
+            {currentItems.map((service) => (
               <motion.div
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                key={service.id}
-                className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 transition-all duration-500"
+                key={service._id}
+                className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 transition-all duration-500"
               >
-                <div className="h-48 overflow-hidden relative">
+                <div className="h-52 overflow-hidden relative bg-slate-100">
                   <img
-                    src={service.image}
-                    className="w-full h-full object-cover"
+                    src={
+                      service.image ||
+                      "https://placehold.co/400x300?text=No+Image"
+                    }
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     alt=""
                   />
-                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1">
-                    <MapPin size={12} className="text-blue-600" />
-                    <span className="text-[10px] font-black text-slate-800 uppercase">
-                      {service.district}, {service.division}
-                    </span>
+                  <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase">
+                    {service.category}
                   </div>
                 </div>
-                <div className="p-8">
-                  <h3 className="text-2xl font-black text-slate-900 mb-6">
-                    {service.name}
+                <div className="p-6">
+                  <h3 className="text-lg font-black text-slate-900 mb-1 leading-tight">
+                    {service.name || service.category}
                   </h3>
-                  <div className="flex justify-between items-center pt-6 border-t border-slate-50">
-                    <p className="text-xl font-black text-blue-600">
-                      {service.price} BDT
-                    </p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-4 flex items-center gap-1">
+                    <MapPin size={10} /> {service.district}, {service.region}
+                  </p>
+                  <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">
+                        Starting From
+                      </p>
+                      <p className="text-lg font-black text-slate-900">
+                        ৳{service.monthlyRate || service.price}
+                      </p>
+                    </div>
                     <Link
-                      href={`/services/${service.id}`}
-                      className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-600 transition-all"
+                      href={`/services/${service._id}`}
+                      className="bg-slate-900 text-white p-3 rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
                     >
-                      View Details
+                      <ArrowRight size={18} />
                     </Link>
                   </div>
                 </div>
@@ -189,6 +219,36 @@ export default function AdvancedServicesPage() {
             ))}
           </AnimatePresence>
         </div>
+
+        {/* Empty State */}
+        {filteredServices.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">
+              No matching caretakers found
+            </p>
+          </div>
+        )}
+
+        {/* Pagination Buttons */}
+        {totalPages > 1 && (
+          <div className="mt-16 flex justify-center items-center gap-3">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-4 bg-white rounded-2xl border border-slate-100 disabled:opacity-30"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="font-black text-slate-400 text-sm mx-4">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-4 bg-white rounded-2xl border border-slate-100 disabled:opacity-30"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

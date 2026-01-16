@@ -12,6 +12,7 @@ import {
   CreditCard,
   Heart,
   UserPlus,
+  Settings,
 } from "lucide-react";
 
 const menuItems = {
@@ -37,6 +38,11 @@ const menuItems = {
       name: "Tasks",
       path: "/dashboard/caretaker",
       icon: <LayoutDashboard size={20} />,
+    },
+    {
+      name: "Service Settings", //
+      path: "/dashboard/caretaker/services",
+      icon: <Settings size={20} />,
     },
     {
       name: "My Schedule",
