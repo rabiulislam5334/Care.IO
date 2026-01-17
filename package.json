@@ -28,6 +28,7 @@
     "recharts": "^3.6.0",
     "stripe": "^20.1.1",
     "sweetalert2": "^11.26.17",
+    "swiper": "^12.0.3",
     "zod": "^4.3.5"
   },
   "devDependencies": {

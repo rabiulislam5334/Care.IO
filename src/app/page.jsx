@@ -3,6 +3,8 @@ import ServicesSection from "@/components/ServicesSection";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import Stats from "@/components/Stats";
 import HowItWorks from "@/components/HowItWorks";
+import Testimonials from "@/components/Testimonials";
+import CTA from "@/components/CallToAction";
 
 export default function HomePage() {
   return (
@@ -12,6 +14,8 @@ export default function HomePage() {
       <ServicesSection />
       <WhyChooseUs />
       <HowItWorks />
+      <Testimonials />
+      <CTA />
     </div>
   );
 }
