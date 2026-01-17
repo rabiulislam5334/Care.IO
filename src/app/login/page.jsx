@@ -16,20 +16,17 @@ export default function LoginPage() {
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      redirect: false, // আমরা ম্যানুয়ালি রিডাইরেক্ট করবো
     });
 
     if (res.ok) {
-      toast.success("Welcome Back! Redirecting...");
+      toast.success("Welcome Back! Redirecting to Home...");
 
-      // সেশন থেকে রোল চেক করে সঠিক ড্যাশবোর্ডে পাঠানো
-      const sessionRes = await fetch("/api/auth/session");
-      const session = await sessionRes.json();
-      const role = session?.user?.role;
+      // সরাসরি হোম পেজে পাঠিয়ে দেওয়া হচ্ছে
+      router.push("/");
 
-      if (role === "admin") router.push("/admin");
-      else if (role === "caretaker") router.push("/caretaker");
-      else router.push("/user");
+      // বিকল্প হিসেবে যদি পেজ রিফ্রেশসহ হোমে পাঠাতে চান তবে নিচের লাইনটি ব্যবহার করতে পারেন:
+      // window.location.href = "/";
     } else {
       toast.error("Invalid Email or Password. Please try again.");
     }
@@ -37,7 +34,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      {/* এনিমেটেড কন্টেইনার */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,7 +50,7 @@ export default function LoginPage() {
           </motion.div>
           <h2 className="text-3xl font-black text-slate-800">Welcome Back</h2>
           <p className="text-slate-500 mt-2 font-medium">
-            Login to manage your care services
+            Login to access Care.IO services
           </p>
         </div>
 
@@ -98,14 +94,15 @@ export default function LoginPage() {
         <div className="mt-8">
           <div className="relative flex items-center justify-center mb-6">
             <div className="border-t border-slate-200 w-full"></div>
-            <span className="bg-transparent px-4 text-slate-400 text-sm font-medium absolute">
+            <span className="bg-white px-4 text-slate-400 text-sm font-medium absolute">
               Or continue with
             </span>
           </div>
 
+          {/* গুগল লগইন এ callbackUrl যোগ করা হয়েছে */}
           <motion.button
             whileHover={{ y: -2 }}
-            onClick={() => signIn("google")}
+            onClick={() => signIn("google", { callbackUrl: "/" })}
             className="flex items-center justify-center gap-3 w-full p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
           >
             <img
