@@ -45,6 +45,11 @@ const menuItems = {
       icon: <Settings size={20} />,
     },
     {
+      name: "My Services", //
+      path: "/dashboard/caretaker/my-services",
+      icon: <Settings size={20} />,
+    },
+    {
       name: "My Schedule",
       path: "/dashboard/caretaker/schedule",
       icon: <CalendarCheck size={20} />,

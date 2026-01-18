@@ -67,27 +67,31 @@ export default function ServiceSettings() {
   // ২. ডায়নামিক ফিল্টারিং লজিক (location.json এর ভিত্তিতে)
   const uniqueRegions = useMemo(
     () => [...new Set(locations.map((loc) => loc.region))],
-    [locations]
+    [locations],
   );
   const filteredDistricts = useMemo(
     () => [
       ...new Set(
-        locations.filter((l) => l.region === watchRegion).map((l) => l.district)
+        locations
+          .filter((l) => l.region === watchRegion)
+          .map((l) => l.district),
       ),
     ],
-    [watchRegion, locations]
+    [watchRegion, locations],
   );
   const filteredCities = useMemo(
     () => [
       ...new Set(
-        locations.filter((l) => l.district === watchDistrict).map((l) => l.city)
+        locations
+          .filter((l) => l.district === watchDistrict)
+          .map((l) => l.city),
       ),
     ],
-    [watchDistrict, locations]
+    [watchDistrict, locations],
   );
   const availableAreas = useMemo(() => {
     const cityData = locations.find(
-      (l) => l.city === watchCity && l.district === watchDistrict
+      (l) => l.city === watchCity && l.district === watchDistrict,
     );
     return cityData ? cityData.covered_area : [];
   }, [watchCity, watchDistrict, locations]);
@@ -123,7 +127,7 @@ export default function ServiceSettings() {
         {
           method: "POST",
           body: formData,
-        }
+        },
       );
       const data = await res.json();
       if (data.success) {
@@ -151,22 +155,22 @@ export default function ServiceSettings() {
         body: JSON.stringify({
           ...data,
           image: imageUrl,
-          updatedAt: new Date(), // ডাটাবেসে সময় ট্র্যাক করার জন্য
+          updatedAt: new Date(),
         }),
       });
 
       if (res.ok) {
-        Swal.fire("Success", "আপনার প্রোফাইল ডাটাবেসে সেভ হয়েছে!", "success");
+        Swal.fire("Success", "Service Saved Successfully!", "success");
+
+        // ফর্ম ক্লিয়ার করার জন্য নিচের লাইনগুলো যোগ করুন
+        reset();
+        setImageUrl(""); // ইমেজ প্রিভিউ ক্লিয়ার
       } else {
         const errorData = await res.json();
-        Swal.fire(
-          "Error",
-          errorData.message || "সেভ হতে সমস্যা হয়েছে",
-          "error"
-        );
+        Swal.fire("Error", errorData.message || "Failed to save", "error");
       }
     } catch (error) {
-      Swal.fire("Error", "সার্ভারের সাথে কানেক্ট করা যাচ্ছে না", "error");
+      Swal.fire("Error", "Server connection failed", "error");
     }
   };
 
