@@ -4,24 +4,20 @@ import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Save,
-  DollarSign,
-  Briefcase,
-  FileText,
   Loader2,
   Sparkles,
   Image as ImageIcon,
   UploadCloud,
-  Clock,
   User,
   MapPin,
   ShieldCheck,
-  Phone,
   PlusCircle,
 } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function ServiceSettings() {
   const [locations, setLocations] = useState([]);
+  const [allServices, setAllServices] = useState([]); // সব সার্ভিস জমানোর জন্য
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
@@ -52,6 +48,7 @@ export default function ServiceSettings() {
     },
   });
 
+  const watchCategory = watch("category");
   const watchRegion = watch("region");
   const watchDistrict = watch("district");
   const watchCity = watch("city");
@@ -64,7 +61,51 @@ export default function ServiceSettings() {
       .catch((err) => console.error("Location load error:", err));
   }, []);
 
-  // ২. ডায়নামিক ফিল্টারিং লজিক (location.json এর ভিত্তিতে)
+  // ২. বিদ্যমান সব ডাটা ফেচ করা
+  const fetchAllServices = async () => {
+    try {
+      const res = await fetch("/api/caretaker/service-details");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAllServices(data);
+        // ডিফল্ট চাইল্ড কেয়ার ডাটা থাকলে সেট করা
+        const currentData = data.find((s) => s.category === "Child Care");
+        if (currentData) {
+          const { _id, ...safeData } = currentData;
+          reset(safeData);
+          setImageUrl(safeData.image || "");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllServices();
+  }, [reset]);
+
+  // ৩. ড্রপডাউন চেঞ্জ হলে অটো ফর্ম আপডেট
+  useEffect(() => {
+    const currentService = allServices.find(
+      (s) => s.category === watchCategory,
+    );
+    if (currentService) {
+      const { _id, ...safeData } = currentService;
+      reset(safeData);
+      setImageUrl(safeData.image || "");
+    } else {
+      // যদি নতুন ক্যাটাগরি হয় তবে ইমেজ এবং কিছু ফিল্ড খালি করা
+      setImageUrl("");
+      setValue("hourlyRate", "");
+      setValue("monthlyRate", "");
+      setValue("coveredAreas", []);
+    }
+  }, [watchCategory, allServices, reset, setValue]);
+
+  // ৪. লোকেশন ফিল্টারিং লজিক (অপরিবর্তিত)
   const uniqueRegions = useMemo(
     () => [...new Set(locations.map((loc) => loc.region))],
     [locations],
@@ -96,49 +137,22 @@ export default function ServiceSettings() {
     return cityData ? cityData.covered_area : [];
   }, [watchCity, watchDistrict, locations]);
 
-  // ৩. বিদ্যমান ডাটা ফেচ করা
-  useEffect(() => {
-    fetch("/api/caretaker/service-details")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data) {
-          reset(data);
-          setImageUrl(data.image);
-        }
-        setLoading(false);
-      });
-  }, [reset]);
-
-  // ৪. নতুন ফটো অ্যাড করার ফাংশন
+  // ৫. ইমেজ আপলোড হ্যান্ডলার (অপরিবর্তিত)
   const handleNewImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const localPreview = URL.createObjectURL(file);
-    setImageUrl(localPreview);
-
     setUploading(true);
     const formData = new FormData();
     formData.append("image", file);
-
     try {
       const res = await fetch(
         `https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
-        {
-          method: "POST",
-          body: formData,
-        },
+        { method: "POST", body: formData },
       );
       const data = await res.json();
       if (data.success) {
         setImageUrl(data.data.url);
         setValue("image", data.data.url);
-        Swal.fire({
-          icon: "success",
-          title: "New Photo Added!",
-          showConfirmButton: false,
-          timer: 1500,
-        });
       }
     } catch (error) {
       Swal.fire("Error", "Upload failed.", "error");
@@ -147,30 +161,67 @@ export default function ServiceSettings() {
     }
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (formData) => {
+    if (!imageUrl) return Swal.fire("Error", "Please upload a photo!", "error");
     try {
       const res = await fetch("/api/caretaker/service-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          image: imageUrl,
-          updatedAt: new Date(),
-        }),
+        body: JSON.stringify({ ...formData, image: imageUrl }),
       });
-
       if (res.ok) {
-        Swal.fire("Success", "Service Saved Successfully!", "success");
-
-        // ফর্ম ক্লিয়ার করার জন্য নিচের লাইনগুলো যোগ করুন
-        reset();
-        setImageUrl(""); // ইমেজ প্রিভিউ ক্লিয়ার
-      } else {
-        const errorData = await res.json();
-        Swal.fire("Error", errorData.message || "Failed to save", "error");
+        Swal.fire("Success", `${formData.category} Profile Saved!`, "success");
+        fetchAllServices(); // পুনরায় ডাটা ফেচ করে স্টেট আপডেট করা
       }
     } catch (error) {
-      Swal.fire("Error", "Server connection failed", "error");
+      Swal.fire("Error", "Server error", "error");
+    }
+  };
+  const onDelete = async () => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Do you want to delete your ${watchCategory} profile? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444", // Red color
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `/api/caretaker/service-details?category=${watchCategory}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (res.ok) {
+          Swal.fire("Deleted!", "Service removed successfully.", "success");
+
+          // ডিলিট হওয়ার পর স্টেট আপডেট এবং ফর্ম রিসেট
+          const updatedList = allServices.filter(
+            (s) => s.category !== watchCategory,
+          );
+          setAllServices(updatedList);
+          reset({
+            category: watchCategory, // ক্যাটাগরি ঠিক রেখে বাকি সব খালি করা
+            hourlyRate: "",
+            monthlyRate: "",
+            coveredAreas: [],
+            nidNumber: "",
+          });
+          setImageUrl("");
+        } else {
+          Swal.fire("Error", "Could not delete the service.", "error");
+        }
+      } catch (error) {
+        Swal.fire("Error", "Something went wrong!", "error");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -187,7 +238,6 @@ export default function ServiceSettings() {
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto p-4 space-y-8 pb-20"
     >
-      {/* Header */}
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
         <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
           <Sparkles size={30} />
@@ -203,7 +253,7 @@ export default function ServiceSettings() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Photo Section (New Layout) */}
+        {/* Profile Picture Section */}
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
           <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-6">
             <ImageIcon size={14} /> Profile Picture
@@ -234,7 +284,7 @@ export default function ServiceSettings() {
                   size={32}
                 />
                 <span className="text-xs font-black uppercase text-slate-600">
-                  Add New Professional Photo
+                  Add Service Photo
                 </span>
                 <input
                   type="file"
@@ -247,7 +297,7 @@ export default function ServiceSettings() {
           </div>
         </div>
 
-        {/* Essential Details (Category, Gender, Availability, Shift) */}
+        {/* Essential Info Section */}
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
           <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
             <User size={14} /> Essential Info
@@ -266,6 +316,7 @@ export default function ServiceSettings() {
                 <option value="Sick Care">Sick Care</option>
               </select>
             </div>
+            {/* Gender, Availability, Shift - Keeping same as your original code */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 ml-1">
                 Gender
@@ -298,15 +349,15 @@ export default function ServiceSettings() {
                 {...register("shift")}
                 className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600 appearance-none"
               >
-                <option value="Day">Day Shift (8AM - 8PM)</option>
-                <option value="Night">Night Shift (8PM - 8AM)</option>
-                <option value="24 Hours">Live-in (24h)</option>
+                <option value="Day">Day Shift</option>
+                <option value="Night">Night Shift</option>
+                <option value="24 Hours">Live-in</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Security & Pricing */}
+        {/* Security & Pricing Section */}
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
           <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
             <ShieldCheck size={14} /> Security & Pricing
@@ -320,7 +371,6 @@ export default function ServiceSettings() {
                 type="text"
                 {...register("nidNumber")}
                 className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="123 456 7890"
               />
             </div>
             <div className="space-y-2">
@@ -331,7 +381,6 @@ export default function ServiceSettings() {
                 type="tel"
                 {...register("emergencyContact")}
                 className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="017..."
               />
             </div>
             <div className="space-y-2">
@@ -365,7 +414,7 @@ export default function ServiceSettings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <select
               {...register("region")}
-              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none"
             >
               <option value="">Region</option>
               {uniqueRegions.map((reg) => (
@@ -377,7 +426,7 @@ export default function ServiceSettings() {
             <select
               {...register("district")}
               disabled={!watchRegion}
-              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
+              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none"
             >
               <option value="">District</option>
               {filteredDistricts.map((dis) => (
@@ -389,7 +438,7 @@ export default function ServiceSettings() {
             <select
               {...register("city")}
               disabled={!watchDistrict}
-              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
+              className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none"
             >
               <option value="">City</option>
               {filteredCities.map((city) => (
@@ -399,7 +448,6 @@ export default function ServiceSettings() {
               ))}
             </select>
           </div>
-
           <AnimatePresence>
             {availableAreas.length > 0 && (
               <motion.div
@@ -410,7 +458,7 @@ export default function ServiceSettings() {
                 {availableAreas.map((area) => (
                   <label
                     key={area}
-                    className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 border border-transparent has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition-all"
+                    className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl cursor-pointer has-[:checked]:bg-blue-50 border border-transparent has-[:checked]:border-blue-500 transition-all"
                   >
                     <input
                       type="checkbox"
@@ -427,21 +475,37 @@ export default function ServiceSettings() {
             )}
           </AnimatePresence>
         </div>
-
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          disabled={isSubmitting || uploading}
-          type="submit"
-          className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:bg-blue-600 transition-colors"
-        >
-          {isSubmitting ? (
-            <Loader2 className="animate-spin" size={20} />
-          ) : (
-            <Save size={20} />
+        {/* Action Buttons Section */}
+        <div className="flex flex-col md:flex-row gap-4 mt-8">
+          {/* যদি ডাটা ডাটাবেসে থাকে তবেই ডিলিট বাটন দেখাবে */}
+          {allServices.find((s) => s.category === watchCategory) && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={onDelete}
+              className="px-8 py-6 bg-red-50 text-red-600 rounded-[2.5rem] font-black uppercase tracking-widest border border-red-100 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2"
+            >
+              Delete Service
+            </motion.button>
           )}
-          Save Professional Profile
-        </motion.button>
+
+          {/* সেভ বাটন */}
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            disabled={isSubmitting || uploading}
+            type="submit"
+            className="flex-1 py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:bg-blue-600 transition-colors"
+          >
+            {isSubmitting ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <Save size={20} />
+            )}
+            Save {watchCategory} Profile
+          </motion.button>
+        </div>
       </form>
     </motion.div>
   );

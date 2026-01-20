@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "@/lib/mongodb"; // এখানে { } হবে না, কারণ এটি ডিফল্ট এক্সপোর্ট
 import { ObjectId } from "mongodb";
 
 // ১. নির্দিষ্ট একটি সার্ভিস ডিলিট করা
 export async function DELETE(request, { params }) {
   try {
     const client = await clientPromise;
-    const db = client.db("careIO_DB"); // আপনার ডাটাবেসের সঠিক নাম দিন
+    const db = client.db("careIO_DB"); // আপনার অরিজিনাল ডাটাবেসের নাম এখানে দিন
 
-    // এপিআই রাউটের প্যারামস থেকে আইডি নেওয়া
+    // Next.js লেটেস্ট ভার্সনে params কে await করতে হয়
     const { id } = await params;
 
     const result = await db.collection("services").deleteOne({
@@ -23,8 +23,9 @@ export async function DELETE(request, { params }) {
     }
     return NextResponse.json({ message: "Service not found" }, { status: 404 });
   } catch (error) {
+    console.error("Delete Error:", error);
     return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
+      { message: "Internal Server Error" },
       { status: 500 },
     );
   }
@@ -34,7 +35,7 @@ export async function DELETE(request, { params }) {
 export async function PATCH(request, { params }) {
   try {
     const client = await clientPromise;
-    const db = client.db("careIO_DB"); // আপনার ডাটাবেসের সঠিক নাম দিন
+    const db = client.db("CareIO"); // আপনার ডাটাবেসের নাম দিন
 
     const { id } = await params;
     const body = await request.json();
@@ -61,6 +62,7 @@ export async function PATCH(request, { params }) {
       { status: 200 },
     );
   } catch (error) {
+    console.error("Update Error:", error);
     return NextResponse.json({ message: "Update failed" }, { status: 500 });
   }
 }
