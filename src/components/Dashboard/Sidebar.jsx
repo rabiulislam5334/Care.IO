@@ -39,11 +39,7 @@ const menuItems = {
       path: "/dashboard/caretaker",
       icon: <LayoutDashboard size={20} />,
     },
-    {
-      name: "Service Settings", //
-      path: "/dashboard/caretaker/services",
-      icon: <Settings size={20} />,
-    },
+
     {
       name: "My Services", //
       path: "/dashboard/caretaker/my-services",

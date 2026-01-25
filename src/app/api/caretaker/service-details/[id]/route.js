@@ -1,47 +1,70 @@
+// api/caretaker/service-details/[id]/route.js
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb"; // এখানে { } হবে না, কারণ এটি ডিফল্ট এক্সপোর্ট
+import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-// ১. নির্দিষ্ট একটি সার্ভিস ডিলিট করা
-export async function DELETE(request, { params }) {
+export async function GET(request, context) {
   try {
+    const params = await context.params; // ← Required in Next.js 15!
+    const { id } = params;
+
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ message: "Invalid ID" }, { status: 400 });
+    }
+
     const client = await clientPromise;
-    const db = client.db("careIO_DB"); // আপনার অরিজিনাল ডাটাবেসের নাম এখানে দিন
+    const db = client.db("CareIO");
 
-    // Next.js লেটেস্ট ভার্সনে params কে await করতে হয়
-    const { id } = await params;
-
-    const result = await db.collection("services").deleteOne({
+    const service = await db.collection("services").findOne({
       _id: new ObjectId(id),
     });
 
-    if (result.deletedCount === 1) {
+    if (!service) {
       return NextResponse.json(
-        { message: "Service deleted successfully" },
-        { status: 200 },
+        { message: "Service not found" },
+        { status: 404 },
       );
     }
-    return NextResponse.json({ message: "Service not found" }, { status: 404 });
+
+    return NextResponse.json(service);
   } catch (error) {
-    console.error("Delete Error:", error);
+    console.error(error);
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+}
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const client = await clientPromise;
+    const db = client.db("CareIO");
+
+    const result = await db.collection("services").insertOne({
+      ...body,
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
     return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 },
+      { success: true, id: result.insertedId.toString() },
+      { status: 201 }
     );
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to create service" }, { status: 500 });
   }
 }
 
-// ২. নির্দিষ্ট সার্ভিস আপডেট করা
-export async function PATCH(request, { params }) {
+export async function PATCH(request, context) {
   try {
-    const client = await clientPromise;
-    const db = client.db("CareIO"); // আপনার ডাটাবেসের নাম দিন
+    const params = await context.params; // ← Required!
+    const { id } = params;
 
-    const { id } = await params;
     const body = await request.json();
-
-    // _id ফিল্ডটি আপডেট ডাটা থেকে সরিয়ে ফেলা যাতে কনফ্লিক্ট না হয়
     const { _id, ...updateData } = body;
+
+    const client = await clientPromise;
+    const db = client.db("CareIO");
 
     const result = await db
       .collection("services")
@@ -57,12 +80,41 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    return NextResponse.json(
-      { message: "Service updated successfully" },
-      { status: 200 },
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Updated successfully",
+    });
   } catch (error) {
-    console.error("Update Error:", error);
+    console.error("PATCH error:", error);
     return NextResponse.json({ message: "Update failed" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request, context) {
+  try {
+    const params = await context.params; // ← Required!
+    const { id } = params;
+
+    const client = await clientPromise;
+    const db = client.db("CareIO");
+
+    const result = await db.collection("services").deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { message: "Service not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE error:", error);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }

@@ -1,106 +1,47 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import clientPromise from "@/lib/mongodb";
-import { NextResponse } from "next/server";
 
-// ১. ডাটা রিড করার জন্য GET মেথড (একাধিক সার্ভিস পাওয়ার জন্য আপডেট করা)
+// api/caretaker/service-details/route.js
+import { NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
+
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const client = await clientPromise;
     const db = client.db("CareIO");
-
-    // findOne এর বদলে find ব্যবহার করা হয়েছে যাতে সব সার্ভিস পাওয়া যায়
+    
+    // .sort({ createdAt: -1 }) যোগ করা হয়েছে যাতে নতুনগুলো আগে আসে
     const services = await db
       .collection("services")
-      .find({ email: session.user.email })
+      .find({})
+      .sort({ createdAt: -1 }) 
       .toArray();
-
-    // যদি কোনো সার্ভিস না থাকে তবে খালি অ্যারে [] রিটার্ন করবে
-    return NextResponse.json(services || []);
+      
+    return NextResponse.json(services);
   } catch (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch services" }, { status: 500 });
   }
 }
 
-// ২. ডাটা সেভ/আপডেট করার জন্য POST মেথড (ক্যাটাগরি ভিত্তিক সেভ করার জন্য আপডেট করা)
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session)
-      return NextResponse.json({ message: "Login required" }, { status: 401 });
-
-    const body = await req.json();
+    const body = await request.json();
     const client = await clientPromise;
     const db = client.db("CareIO");
 
-    const { _id, ...dataWithoutId } = body;
+    const result = await db.collection("services").insertOne({
+      ...body,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    // ফিল্টারে email এবং category দুটোই ব্যবহার করা হয়েছে
-    // এর ফলে একই ইমেইল দিয়ে ভিন্ন ভিন্ন ক্যাটাগরির সার্ভিস সেভ করা যাবে
-    await db.collection("services").updateOne(
-      {
-        email: session.user.email,
-        category: dataWithoutId.category,
-      },
-      {
-        $set: {
-          ...dataWithoutId,
-          email: session.user.email,
-          updatedAt: new Date(),
-        },
-      },
-      { upsert: true },
+    return NextResponse.json(
+      { success: true, id: result.insertedId.toString() },
+      { status: 201 },
     );
-
-    return NextResponse.json({
-      success: true,
-      message: `${dataWithoutId.category} Saved Successfully!`,
-    });
   } catch (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
-  }
-}
-// ৩. নির্দিষ্ট সার্ভিস ডিলিট করার জন্য DELETE মেথড
-export async function DELETE(req) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category"); // URL থেকে সার্ভিস ক্যাটাগরি নেওয়া
-
-    if (!category) {
-      return NextResponse.json(
-        { message: "Category is required" },
-        { status: 400 },
-      );
-    }
-
-    const client = await clientPromise;
-    const db = client.db("CareIO");
-
-    const result = await db.collection("services").deleteOne({
-      email: session.user.email,
-      category: category,
-    });
-
-    if (result.deletedCount === 1) {
-      return NextResponse.json({
-        success: true,
-        message: "Service deleted successfully",
-      });
-    } else {
-      return NextResponse.json(
-        { message: "Service not found" },
-        { status: 404 },
-      );
-    }
-  } catch (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to create service" },
+      { status: 500 },
+    );
   }
 }

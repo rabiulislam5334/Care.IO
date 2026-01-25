@@ -33,42 +33,60 @@ export default function BookingPage({ params }) {
 
   useEffect(() => {
     const fetchService = async () => {
-      const res = await fetch(`/api/caretaker/service-details?id=${serviceId}`);
-      const data = await res.json();
-      setService(data);
-      setLoading(false);
-    };
-    fetchService();
-  }, [serviceId]);
+      try {
+        // ?id= বাদ দিয়ে সরাসরি আইডি দিন
+        const res = await fetch(`/api/caretaker/service-details/${serviceId}`);
 
+        if (!res.ok) throw new Error("Failed to fetch service");
+
+        const data = await res.json();
+        setService(data);
+      } catch (error) {
+        console.error("Booking Fetch Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (serviceId) fetchService();
+  }, [serviceId]);
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!session) return alert("Please login to book!");
 
     setBookingLoading(true);
-    const res = await fetch("/api/booking/create", {
-      method: "POST",
-      body: JSON.stringify({
-        serviceId,
-        caretakerEmail: service.email,
-        userName: session.user.name,
-        userEmail: session.user.email,
-        startDate,
-        address,
-        note,
-        amount: service.monthlyRate,
-      }),
-    });
+    try {
+      const res = await fetch("/api/booking/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          serviceId,
+          // এখানে নিশ্চিত করুন service.email এবং service.monthlyRate এ ডাটা আছে
+          caretakerEmail: service?.email,
+          userName: session.user.name,
+          userEmail: session.user.email,
+          startDate,
+          address,
+          note,
+          price: service?.monthlyRate, // price ফিল্ডটি যোগ করুন
+        }),
+      });
 
-    if (res.ok) {
-      setIsSuccess(true);
-      setTimeout(() => router.push("/dashboard/my-bookings"), 3000);
-    } else {
-      alert("Something went wrong!");
+      if (res.ok) {
+        setIsSuccess(true);
+        setTimeout(() => router.push("/dashboard/user"), 3000);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Something went wrong!");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setBookingLoading(false);
     }
-    setBookingLoading(false);
   };
-
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center">

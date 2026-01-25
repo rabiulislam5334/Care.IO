@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // আপনার পাথ অনুযায়ী পরিবর্তন করুন
+import { authOptions } from "@/lib/auth"; // আপনার পাথ অনুযায়ী পরিবর্তন করুন
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 
@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -14,13 +15,20 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("CareIO");
 
-    const serviceDetails = await db.collection("services").findOne({
-      email: session.user.email,
-    });
+    // findOne এর বদলে find().toArray() ব্যবহার করুন যাতে ফ্রন্টএন্ডে .map() করা যায়
+    const serviceDetails = await db
+      .collection("services")
+      .find({ email: session.user.email })
+      .toArray();
 
-    return NextResponse.json(serviceDetails || {});
+    // সবসময় একটি অ্যারে রিটার্ন নিশ্চিত করুন
+    return NextResponse.json(serviceDetails || []);
   } catch (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    console.error("GET API Error:", error);
+    return NextResponse.json(
+      { message: "Server Error", details: error.message },
+      { status: 500 },
+    );
   }
 }
 
@@ -52,7 +60,7 @@ export async function POST(req) {
       .updateOne(
         { email: session.user.email },
         { $set: finalData },
-        { upsert: true }
+        { upsert: true },
       );
 
     return NextResponse.json({
@@ -63,7 +71,7 @@ export async function POST(req) {
     console.error("Database Error:", error);
     return NextResponse.json(
       { message: "সার্ভার এরর: ডাটা সেভ হয়নি" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

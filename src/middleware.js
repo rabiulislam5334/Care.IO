@@ -3,8 +3,14 @@ import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
-    const role = req.nextauth.token?.role;
     const path = req.nextUrl.pathname;
+
+    // ❌ API route গুলোতে middleware redirect করবে না
+    if (path.startsWith("/api")) {
+      return NextResponse.next();
+    }
+
+    const role = req.nextauth.token?.role;
 
     // ১. অ্যাডমিন প্রোটেকশন
     if (path.startsWith("/dashboard/admin") && role !== "admin") {
@@ -16,19 +22,18 @@ export default withAuth(
       return NextResponse.redirect(new URL("/dashboard/user", req.url));
     }
 
-    // ৩. ইউজার প্রোটেকশন (অপশনাল: যদি চান ইউজার ছাড়া অন্য কেউ /dashboard/user এ আসবে না)
+    // ৩. ইউজার প্রোটেকশন (অপশনাল)
     if (path.startsWith("/dashboard/user") && !role) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token, // টোকেন না থাকলে অটো লগইন পেজে পাঠাবে
+      authorized: ({ token }) => !!token,
     },
   }
 );
 
 export const config = {
-  // আপনার বর্তমান URL স্ট্রাকচার অনুযায়ী পাথগুলো আপডেট করা হয়েছে
   matcher: ["/dashboard/:path*"],
 };
