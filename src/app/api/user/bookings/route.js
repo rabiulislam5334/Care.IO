@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -14,20 +14,12 @@ export async function GET() {
     const db = client.db("CareIO");
 
     const email = session.user.email;
-    const role = session.user.role; // আপনার session এ role থাকা প্রয়োজন
-
-    let query = {};
-
-    // লজিক: কেয়ারটেকার হলে তার কাছে আসা বুকিং দেখাবে, ইউজার হলে তার করা বুকিং দেখাবে
-    if (role === "caretaker") {
-      query = { caretakerEmail: email };
-    } else {
-      query = { userEmail: email };
-    }
-
-    const bookings = await db
-      .collection("bookings")
-      .find(query)
+    // এখানে আপনার ডাটাবেস অনুযায়ী চেক করুন ইউজার কেয়ারটেকার কি না
+    // যদি সেশনে রোল না থাকে তবে ইমেইল দিয়ে উভয় কলামে সার্চ করুন
+    const bookings = await db.collection("bookings")
+      .find({
+        $or: [{ caretakerEmail: email }, { userEmail: email }]
+      })
       .sort({ createdAt: -1 })
       .toArray();
 
