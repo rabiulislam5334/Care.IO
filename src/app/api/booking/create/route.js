@@ -1,3 +1,4 @@
+// booking/create/route.js
 import clientPromise from "@/lib/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -46,20 +47,18 @@ export async function POST(req) {
     }
 
     // ৫. ডাটা প্রসেস করা (সেফটি + ক্লিনিং)
-    const newBooking = {
-      serviceId: new ObjectId(body.serviceId),
-      caretakerEmail: body.caretakerEmail.trim().toLowerCase(),
-      userName: body.userName.trim(),
-      userEmail: body.userEmail.trim().toLowerCase(),
-      startDate: body.startDate.trim(),
-      address: body.address.trim(),
-      note: body.note?.trim() || "",
-      price: Number(body.amount) || 0, // amount থেকে price
-      status: "pending",
-      createdBy: session.user.email,   // কে বুকিং করেছে (অডিটের জন্য)
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+const newBooking = {
+  serviceId: new ObjectId(body.serviceId),
+  caretakerEmail: body.caretakerEmail.trim().toLowerCase(),
+  userName: body.userName,
+  userEmail: body.userEmail.trim().toLowerCase(),
+  startDate: body.startDate,
+  address: body.address,
+  note: body.note || "",
+  price: Number(body.price) || 0, // 'price' কি-টি নিশ্চিত করুন
+  status: "pending",
+  createdAt: new Date(),
+};
 
     const client = await clientPromise;
     const db = client.db("CareIO");

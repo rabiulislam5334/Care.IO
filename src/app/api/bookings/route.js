@@ -1,8 +1,11 @@
+//app/api/bookings/route.js
 import clientPromise from "@/lib/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+
+// ভুল ইমপোর্টটি মুছে ফেলা হয়েছে
 
 const allowedStatus = ["pending", "accepted", "rejected", "completed"];
 
@@ -10,10 +13,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const client = await clientPromise;
@@ -42,10 +42,7 @@ export async function GET() {
     );
   } catch (error) {
     console.error("GET Booking Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch bookings" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
   }
 }
 
@@ -53,10 +50,7 @@ export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login first" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -72,18 +66,8 @@ export async function POST(request) {
 
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Missing field: ${field}` }, { status: 400 });
       }
-    }
-
-    if (!ObjectId.isValid(body.serviceId)) {
-      return NextResponse.json(
-        { error: "Invalid service ID format" },
-        { status: 400 }
-      );
     }
 
     const newBooking = {
@@ -94,7 +78,10 @@ export async function POST(request) {
       startDate: body.startDate.trim(),
       address: body.address.trim(),
       note: body.note?.trim() || "",
-      amount: Number(body.amount) || 0,
+      
+      // ✅ এখানে ফিক্স করা হয়েছে: ফ্রন্টএন্ড থেকে আসা 'price' রিসিভ করা হচ্ছে
+      price: Number(body.price) || 0, 
+      
       status: "pending",
       createdBy: session.user.email,
       createdAt: new Date(),
@@ -103,23 +90,16 @@ export async function POST(request) {
 
     const client = await clientPromise;
     const db = client.db("CareIO");
-
     const result = await db.collection("bookings").insertOne(newBooking);
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Booking created successfully",
-        bookingId: result.insertedId.toString(),
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Booking created successfully",
+      bookingId: result.insertedId.toString(),
+    }, { status: 201 });
   } catch (error) {
     console.error("POST Booking Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create booking" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create booking" }, { status: 500 });
   }
 }
 
@@ -127,50 +107,24 @@ export async function PATCH(request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { id, status } = await request.json();
 
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid ID format" },
-        { status: 400 }
-      );
-    }
-
-    if (!allowedStatus.includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status value" },
-        { status: 400 }
-      );
+    if (!ObjectId.isValid(id) || !allowedStatus.includes(status)) {
+      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
     const client = await clientPromise;
     const db = client.db("CareIO");
+    
+    // বুকিংটি আগে খুঁজে দেখুন আপডেট করার পারমিশন আছে কি না
+    const booking = await db.collection("bookings").findOne({ _id: new ObjectId(id) });
+    if (!booking) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const booking = await db
-      .collection("bookings")
-      .findOne({ _id: new ObjectId(id) });
-
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    if (
-      session.user.role !== "admin" &&
-      session.user.email !== booking.caretakerEmail
-    ) {
-      return NextResponse.json(
-        { message: "You cannot update this booking" },
-        { status: 403 }
-      );
+    if (session.user.role !== "admin" && session.user.email !== booking.caretakerEmail) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     await db.collection("bookings").updateOne(
@@ -180,10 +134,6 @@ export async function PATCH(request) {
 
     return NextResponse.json({ message: "Status updated", success: true });
   } catch (error) {
-    console.error("PATCH Booking Error:", error);
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

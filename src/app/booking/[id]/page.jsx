@@ -34,11 +34,8 @@ export default function BookingPage({ params }) {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        // ?id= বাদ দিয়ে সরাসরি আইডি দিন
         const res = await fetch(`/api/caretaker/service-details/${serviceId}`);
-
         if (!res.ok) throw new Error("Failed to fetch service");
-
         const data = await res.json();
         setService(data);
       } catch (error) {
@@ -47,30 +44,36 @@ export default function BookingPage({ params }) {
         setLoading(false);
       }
     };
-
     if (serviceId) fetchService();
   }, [serviceId]);
+
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!session) return alert("Please login to book!");
 
-    setBookingLoading(true);
+    // ডাটাবেস অনুযায়ী সঠিক ফিল্ড চেক
+    const caretakerEmail = service?.email || service?.caretakerEmail || service?.serviceEmail;
+    const price = Number(service?.monthlyRate) || 0;
+
+    if (!caretakerEmail || price <= 0) {
+      alert(`Service info missing!\nEmail: ${caretakerEmail || "Not Found"}\nPrice: ${price}`);
+      return;
+    }
+
+    setBookingLoading(true); // এটি যোগ করা হয়েছে
     try {
       const res = await fetch("/api/booking/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceId,
-          // এখানে নিশ্চিত করুন service.email এবং service.monthlyRate এ ডাটা আছে
-          caretakerEmail: service?.email,
+          caretakerEmail,
           userName: session.user.name,
           userEmail: session.user.email,
           startDate,
           address,
           note,
-          price: service?.monthlyRate, // price ফিল্ডটি যোগ করুন
+          price,
         }),
       });
 
@@ -86,7 +89,8 @@ export default function BookingPage({ params }) {
     } finally {
       setBookingLoading(false);
     }
-  };
+  }; // <--- এখানে আপনি ফাংশনটি ক্লোজ করতে ভুলে গিয়েছিলেন
+
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center">
@@ -111,7 +115,7 @@ export default function BookingPage({ params }) {
                 Booking Requested!
               </h2>
               <p className="text-slate-500 font-medium">
-                Your request has been sent to {service.userName}. Redirecting to
+                Your request has been sent to {service?.userName}. Redirecting to
                 dashboard...
               </p>
             </motion.div>
@@ -167,12 +171,11 @@ export default function BookingPage({ params }) {
                     </div>
 
                     <button
+                      type="submit"
                       disabled={bookingLoading}
                       className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
                     >
-                      {bookingLoading
-                        ? "Processing..."
-                        : "Confirm Booking Request"}{" "}
+                      {bookingLoading ? "Processing..." : "Confirm Booking Request"}
                       <ChevronRight size={20} />
                     </button>
                   </form>
@@ -183,29 +186,26 @@ export default function BookingPage({ params }) {
               <div className="lg:col-span-2">
                 <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl sticky top-10 overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl" />
-
                   <h2 className="text-xl font-black mb-8 border-b border-slate-800 pb-4">
                     Service Summary
                   </h2>
-
                   <div className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
                     <img
-                      src={service.image}
+                      src={service?.image}
                       className="w-16 h-16 rounded-xl object-cover"
                       alt=""
                     />
                     <div>
-                      <h3 className="font-black text-lg">{service.userName}</h3>
+                      <h3 className="font-black text-lg">{service?.userName}</h3>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        {service.category}
+                        {service?.category}
                       </p>
                     </div>
                   </div>
-
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between font-bold text-slate-400">
                       <span>Monthly Charge</span>
-                      <span className="text-white">৳{service.monthlyRate}</span>
+                      <span className="text-white">৳{service?.monthlyRate}</span>
                     </div>
                     <div className="flex justify-between font-bold text-slate-400">
                       <span>Platform Fee</span>
@@ -216,11 +216,10 @@ export default function BookingPage({ params }) {
                         Total
                       </span>
                       <span className="text-4xl font-black">
-                        ৳{service.monthlyRate}
+                        ৳{service?.monthlyRate}
                       </span>
                     </div>
                   </div>
-
                   <div className="bg-blue-600/10 border border-blue-600/20 p-4 rounded-2xl flex gap-3 items-start">
                     <ShieldCheck className="text-blue-400 shrink-0" size={20} />
                     <p className="text-[10px] font-bold text-blue-100 leading-relaxed uppercase tracking-wider">

@@ -2,6 +2,7 @@
 // api/caretaker/service-details/route.js
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -22,15 +23,16 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  try {
+try {
+    const session = await getServerSession(authOptions); // সেশন থেকে ইমেইল নিন
     const body = await request.json();
     const client = await clientPromise;
     const db = client.db("CareIO");
 
     const result = await db.collection("services").insertOne({
       ...body,
+      email: session.user.email, // অবশ্যই সার্ভিস প্রোভাইডারের ইমেইল থাকতে হবে
       createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     return NextResponse.json(
