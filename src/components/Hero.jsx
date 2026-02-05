@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+
 import Link from "next/link";
 
 export default function Hero() {
@@ -46,9 +47,9 @@ export default function Hero() {
           transition={{ duration: 1 }}
           className="relative"
         >
-          <div className="w-full h-[500px] bg-blue-600 rounded-[3rem] overflow-hidden rotate-3 hover:rotate-0 transition-transform duration-700 shadow-2xl">
+          <div className="w-full h-[600px] bg-blue-600 rounded-[3rem] overflow-hidden rotate-3 hover:rotate-0 transition-transform duration-700 shadow-2xl">
             <img
-              src="https://images.unsplash.com/photo-1581578731522-745505146317?q=80&w=2070"
+              src="/homecare-why-choose-us.webp"
               alt="Caregiving"
               className="w-full h-full object-cover -rotate-3 hover:rotate-0 transition-transform duration-700"
             />

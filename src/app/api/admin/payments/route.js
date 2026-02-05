@@ -6,14 +6,14 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("CareIO");
 
-    // সব পেমেন্ট ডাটা রিসেন্ট থেকে ওল্ড অনুযায়ী আনা (Sort by Date)
-    const payments = await db
-      .collection("payments")
-      .find({})
-      .sort({ date: -1 })
+    // bookings কালেকশন থেকে যেখানে paymentStatus: "paid" আছে সেগুলো আনুন
+    const paidPayments = await db
+      .collection("bookings")
+      .find({ paymentStatus: "paid" })
+      .sort({ updatedAt: -1 }) // অথবা paidAt থাকলে সেটি দিন
       .toArray();
 
-    return NextResponse.json(payments);
+    return NextResponse.json(paidPayments);
   } catch (error) {
     console.error("Payment API Error:", error);
     return NextResponse.json(

@@ -7,30 +7,34 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("CareIO");
 
-    // ১. সাধারণ স্ট্যাটাস কাউন্ট
-    const [userCount, bookingCount, payments] = await Promise.all([
+    // ১. সাধারণ স্ট্যাটাস কাউন্ট (বুকিংস কালেকশন থেকে পেইড ডাটা নেওয়া)
+    const [userCount, bookingCount, paidBookings] = await Promise.all([
       db.collection("users").countDocuments(),
       db.collection("bookings").countDocuments(),
-      db.collection("payments").find({}).toArray(),
+      db.collection("bookings").find({ paymentStatus: "paid" }).toArray(), // কালেকশন নাম নিশ্চিত করুন
     ]);
 
-    const totalRevenue = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    // ২. মোট রেভিনিউ ক্যালকুলেট করা (price বা totalPrice ফিল্ড চেক করুন)
+    const totalRevenue = paidBookings.reduce((sum, b) => sum + (parseFloat(b.price || b.totalPrice) || 0), 0);
 
-    // ২. চার্টের জন্য রিয়েল মান্থলি ডাটা (Aggregation)
-    const chartData = await db.collection("payments").aggregate([
+    // ৩. চার্টের জন্য মান্থলি ডাটা (Bookings কালেকশন থেকে)
+    const chartData = await db.collection("bookings").aggregate([
+      {
+        $match: { paymentStatus: "paid" } // শুধুমাত্র পেইড বুকিংগুলো নিবে
+      },
       {
         $group: {
-          _id: { $month: { $toDate: "$date" } }, // তারিখ থেকে মাস আলাদা করা
-          total: { $sum: { $toDouble: "$amount" } } // ঐ মাসের মোট টাকার যোগফল
+          // updatedAt অথবা paidAt ফিল্ড ব্যবহার করুন যা আপনার ডাটাবেসে আছে
+          _id: { $month: { $toDate: "$updatedAt" } }, 
+          total: { $sum: { $toDouble: { $ifNull: ["$price", "$totalPrice"] } } }
         }
       },
-      { $sort: { "_id": 1 } } // মাস অনুযায়ী সিরিয়াল করা (জানুয়ারি থেকে ডিসেম্বর)
+      { $sort: { "_id": 1 } }
     ]).toArray();
 
-    // মাসের নাম কনভার্ট করা (১ কে 'Jan' এ রূপান্তর)
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const formattedChartData = chartData.map(item => ({
-      name: monthNames[item._id - 1],
+      name: monthNames[item._id - 1] || "Unknown",
       total: item.total
     }));
 
@@ -42,7 +46,7 @@ export async function GET() {
       success: true
     });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    console.error("Admin Stats Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
