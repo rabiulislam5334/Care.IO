@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb";
 export async function PATCH(req) {
   try {
     const session = await getServerSession(authOptions);
-    // চেক করা হচ্ছে ইউজার অ্যাডমিন কি না
+    
     if (session?.user?.role !== "admin") {
       return NextResponse.json({ error: "Access Denied" }, { status: 403 });
     }
