@@ -1,7 +1,7 @@
 # 🏥 Care.IO - Premium Caregiver Marketplace
 
 <p align="center">
-  <img src="https://images.unsplash.com/photo-1581578731522-745505146317?q=80&w=2070" width="100%" alt="Care.IO Banner"/>
+  <img src="https://i.ibb.co.com/rK0YDXRX/Green-Minimalist-Grow-Your-Social-Media-You-Tube-Thumbnail-4.png" width="100%" alt="Care.IO Banner"/>
 </p>
 
 <p align="center">
@@ -83,8 +83,8 @@
 ---
 
 ## 📬 Contact
-**Your Name** 📧 [your-email@example.com](mailto:your-email@example.com)  
-🔗 [LinkedIn Profile](https://linkedin.com/in/your-profile)
+**Your Name** 📧 [rabiulislam5334@gmail.com](mailto:rabiulislam5334@gmail.com)  
+🔗 [LinkedIn Profile]https://www.linkedin.com/in/developerrabiul/
 
 ---
 <p align="center">
