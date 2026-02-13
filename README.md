@@ -1,7 +1,7 @@
 # 🏥 Care.IO - Premium Caregiver Marketplace
 
 <p align="center">
-  <img src="https://i.ibb.co.com/rK0YDXRX/Green-Minimalist-Grow-Your-Social-Media-You-Tube-Thumbnail-4.png" width="100%" alt="Care.IO Banner"/>
+  <img src="https://i.ibb.co.com/rK0YDXRX/Green-Minimalist-Grow-Your-Social-Media-You-Tube-Thumbnail-4.png" width="70%" alt="Care.IO Banner"/>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 ## 🌟 Project Overview
 **Care.IO** is a sophisticated service marketplace designed to connect families with verified professional caregivers. Whether it's for childcare, elderly support, or specialized nursing, Care.IO provides a seamless, secure, and compassionate platform to find the right help at your doorstep.
 
-🔗 **[Live Demo](your-live-link.vercel.app)** | 🖥️ **[GitHub Repository](https://github.com/your-username/care-io)**
+🔗 **[Live Demo][(https://care-io-eight.vercel.app/) | 🖥️ **[GitHub Repository](https://github.com/rabiulislam5334/Care.IO)**
 
 ---
 
